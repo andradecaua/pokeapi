@@ -9,8 +9,12 @@ export default function Home() {
   const [limit, setLimit] = useState<string>('10')
   const [pokemons, setPokemons] = useState()
 
-  useEffect(() => {
+  async function fetchPokemons(){
     fetch(pokeApiLink.concat(limit)).then(async data => {setPokemons(await data.json())}).finally(() => {console.log(pokemons)})
+  }
+
+  useEffect(() => {
+    fetchPokemons()
   },[])
 
   return (
@@ -22,8 +26,9 @@ export default function Home() {
       <select>
           {pokemonsLimit.map((item, index) => {
             return(
-              <option key={index} value={item} onSelect={() => {
+              <option key={index} value={item} onSelect={ async () => {
                 setLimit(item)
+                fetchPokemons()
               }}>{item}</option>
             )
           })}
