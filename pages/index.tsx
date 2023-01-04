@@ -1,21 +1,26 @@
 import Head from 'next/head'
+import EventEmitter from 'stream'
 import {useState, useEffect} from 'react'
 
 const pokemonsLimit = ['10', '20', '30', '40', '50']
+
 
 export default function Home() {
 
   const pokeApiLink: string = 'https://pokeapi.co/api/v2/pokemon?limit='
   const [limit, setLimit] = useState<string>('10')
-  const [pokemons, setPokemons] = useState()
+  const [pokemons, setPokemons] = useState<[{name: string, url: string}]>()
 
   async function fetchPokemons(){
-    fetch(pokeApiLink.concat(limit)).then(async data => {setPokemons(await data.json())}).finally(() => {console.log(pokemons)})
+    const data = await fetch(pokeApiLink.concat(limit)).then(async (data) => {return await data.json()})
+    return await data
   }
 
   useEffect(() => {
-    fetchPokemons()
-  },[])
+     fetchPokemons().then((data) => {
+        setPokemons(data.results)
+     })
+  },[pokemons])
 
   return (
     <>
@@ -23,16 +28,30 @@ export default function Home() {
       <title>Poke Api</title>
     </Head>
     <main>
-      <select>
+      <span>{limit}</span>
+      <select  onChange={async (value) => {
+                const newLimit = value.currentTarget.value
+                setLimit(newLimit)
+                fetchPokemons().then((data) => {
+                  setPokemons(data.results)
+               })
+              }}>
           {pokemonsLimit.map((item, index) => {
             return(
-              <option key={index} value={item} onSelect={ async () => {
-                setLimit(item)
-                fetchPokemons()
-              }}>{item}</option>
+              <option key={index} value={item}>{item}</option>
             )
           })}
         </select>
+        <div>
+
+          {pokemons !== undefined?pokemons.map(item => {
+            return(
+              <div>
+                <span>{item.name}</span>
+              </div>
+            )
+          }):""}
+        </div>
     </main>
     </>
   )
