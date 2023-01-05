@@ -2,25 +2,60 @@ import Head from 'next/head'
 import EventEmitter from 'stream'
 import {useState, useEffect} from 'react'
 
-const pokemonsLimit = ['10', '20', '30', '40', '50']
-
-
 export default function Home() {
 
-  const pokeApiLink: string = 'https://pokeapi.co/api/v2/pokemon?limit='
-  const [limit, setLimit] = useState<string>('10')
-  const [pokemons, setPokemons] = useState<[{name: string, url: string}]>()
+  const pokeApiLink: string = 'https://pokeapi.co/api/v2/pokemon/'
+  const [name, setName] = useState<string>('')
+  const [pokemon, setPokemon] = useState<{name: string, sprites: string}>({name: "", sprites: ""})
 
   async function fetchPokemons(){
-    const data = await fetch(pokeApiLink.concat(limit)).then(async (data) => {return await data.json()})
-    return await data
-  }
+      const pokeData = await fetch(pokeApiLink.concat(name.toLowerCase()))
+        .then
+        (
+        async(res) => 
+              {
+                if(res.status === 404)
+                {
+                  throw new Error("Pokémon não encontrado") // Verifica o erro de pokémon não encontrado
+                }
+                return await res.json()
+              },
+              (erro) => 
+              {
+              }
+        )
+        .then
+        (
+          (data) =>
+            {
+              if(data.name && data.sprites.front_default)
+                {
+                  return({name: data.name, sprites: data.sprites.front_default})
+                }
+            }
+        )
+      return pokeData
+    }
 
   useEffect(() => {
-     fetchPokemons().then((data) => {
-        setPokemons(data.results)
-     })
-  },[pokemons])
+    fetchPokemons()
+    .then(
+        (data) => 
+        {
+          if(data !== undefined){
+            setPokemon({name: data?.name, sprites: data?.sprites})
+          }
+        }
+        )
+     .catch
+        (
+        e => 
+          {
+            //console.log(e)  Erro pokémon não encontrado
+            setPokemon({name: "", sprites: ""})
+          }
+        )
+  },[pokemon])
 
   return (
     <>
@@ -28,29 +63,39 @@ export default function Home() {
       <title>Poke Api</title>
     </Head>
     <main>
-      <span>{limit}</span>
-      <select  onChange={async (value) => {
-                const newLimit = value.currentTarget.value
-                setLimit(newLimit)
-                fetchPokemons().then((data) => {
-                  setPokemons(data.results)
-               })
-              }}>
-          {pokemonsLimit.map((item, index) => {
-            return(
-              <option key={index} value={item}>{item}</option>
-            )
-          })}
-        </select>
-        <div>
-
-          {pokemons !== undefined?pokemons.map(item => {
-            return(
-              <div>
+        <form>
+          <input type="search" onChangeCapture={async (input) => {
+            setName(input.currentTarget.value)
+            await fetchPokemons()
+            .then
+              (
+                (data) => 
+                {
+                if(data !== undefined)
+                {
+                  setPokemon({name: data?.name, sprites: data?.sprites})
+                }
+                }
+              )
+            .catch
+                (
+                e => 
+                  {
+                    // console.log(e) Erro pokemon not found
+                    setPokemon({name: "", sprites: ""})
+                  }
+                )
+          }}/>
+        </form>
+        <div> 
+            {pokemon.name !== undefined?[pokemon].map((item, index) => {
+              return(
+                <>
                 <span>{item.name}</span>
-              </div>
-            )
-          }):""}
+                <img src={item.sprites} alt={"Foto do pokémon: "+item.sprites} />
+                </>
+              )
+            }):""}
         </div>
     </main>
     </>
